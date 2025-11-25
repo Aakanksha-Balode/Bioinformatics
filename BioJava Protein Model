@@ -1,0 +1,130 @@
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+
+/**
+ * Represents a functional domain within a protein sequence.
+ * This class models common data found in databases like Pfam or InterPro.
+ */
+class ProteinDomain {
+    private final String domainId;
+    private final String name;
+    private final int startPosition;
+    private final int endPosition;
+
+    /**
+     * Constructs a ProteinDomain object.
+     * @param domainId Unique identifier for the domain (e.g., Pfam accession).
+     * @param name Descriptive name of the domain (e.g., 'Kinase domain').
+     * @param startPosition 1-based start index in the protein sequence.
+     * @param endPosition 1-based end index in the protein sequence.
+     */
+    public ProteinDomain(String domainId, String name, int startPosition, int endPosition) {
+        if (startPosition <= 0 || endPosition <= 0 || startPosition > endPosition) {
+            throw new IllegalArgumentException("Invalid domain positions.");
+        }
+        this.domainId = domainId;
+        this.name = name;
+        this.startPosition = startPosition;
+        this.endPosition = endPosition;
+    }
+
+    // Standard getter methods
+    public String getDomainId() { return domainId; }
+    public String getName() { return name; }
+    public int getStartPosition() { return startPosition; }
+    public int getEndPosition() { return endPosition; }
+
+    @Override
+    public String toString() {
+        return String.format("%s (%s): %d-%d", name, domainId, startPosition, endPosition);
+    }
+}
+
+/**
+ * Represents a complete protein model, including its sequence and annotated domains.
+ * This structure is suitable for integration into BioJava's core object model.
+ */
+public class ProteinModel {
+    private final String accession;
+    private final String sequence;
+    private final List<ProteinDomain> domains;
+
+    /**
+     * Constructs a ProteinModel.
+     * @param accession Unique protein identifier (e.g., UniProt ID).
+     * @param sequence The full amino acid sequence (1-letter code).
+     */
+    public ProteinModel(String accession, String sequence) {
+        this.accession = Objects.requireNonNull(accession, "Accession cannot be null.");
+        this.sequence = Objects.requireNonNull(sequence, "Sequence cannot be null.");
+        this.domains = new ArrayList<>();
+    }
+
+    /**
+     * Adds a functional domain to the protein model.
+     * Ensures the domain coordinates are valid relative to the sequence length.
+     * @param domain The ProteinDomain object to add.
+     * @return True if the domain was added successfully, false otherwise.
+     */
+    public boolean addDomain(ProteinDomain domain) {
+        if (domain.getEndPosition() > this.sequence.length()) {
+            System.err.println("Error: Domain ends at " + domain.getEndPosition() + 
+                               " which is beyond sequence length " + this.sequence.length());
+            return false;
+        }
+        return domains.add(domain);
+    }
+
+    // Standard getter methods
+    public String getAccession() { return accession; }
+    public String getSequence() { return sequence; }
+    public int getLength() { return sequence.length(); }
+    public List<ProteinDomain> getDomains() { return new ArrayList<>(domains); } // Return a copy
+
+    /**
+     * Provides a summary of the protein model.
+     */
+    public void summarize() {
+        System.out.println("----------------------------------------");
+        System.out.println("Protein Accession: " + accession);
+        System.out.println("Sequence Length: " + getLength());
+        System.out.println("Sequence Snippet: " + sequence.substring(0, Math.min(sequence.length(), 40)) + "...");
+        System.out.println("Annotated Domains (" + domains.size() + "):");
+
+        if (domains.isEmpty()) {
+            System.out.println("  No domains annotated.");
+        } else {
+            for (ProteinDomain domain : domains) {
+                System.out.println("  - " + domain);
+            }
+        }
+        System.out.println("----------------------------------------");
+    }
+
+    // Example Main Method to Demonstrate Usage
+    public static void main(String[] args) {
+        
+        // UniProt P00517: Proto-oncogene tyrosine-protein kinase Src
+        String srcAccession = "P00517";
+        String srcSequence = "MGSSKSKPKDASQRRRESLVRITRGLYGLTWNSSLDVLRDNAPVLYLPPEEGLCYCNPIAEQYRLYGEIKSPFRERLSEEEERLTLL" +
+                             "SEELSDELARVLVDESHKPGIVLTGWQPLSDPLVTLLQAPQLWQLNPDTYQYSLRGYRTLSSVDAEEALRDIK";
+        
+        ProteinModel srcProtein = new ProteinModel(srcAccession, srcSequence);
+        
+        // Domain 1: SH3 domain (start-stop 50-100)
+        ProteinDomain sh3 = new ProteinDomain("PF00018", "SH3 domain", 50, 100);
+        // Domain 2: SH2 domain (start-stop 105-180)
+        ProteinDomain sh2 = new ProteinDomain("PF00017", "SH2 domain", 105, 180);
+        
+        srcProtein.addDomain(sh3);
+        srcProtein.addDomain(sh2);
+        
+        // Attempt to add an invalid domain (ends beyond sequence length)
+        ProteinDomain invalidDomain = new ProteinDomain("PFXXXXX", "Invalid Test", 200, 500);
+        srcProtein.addDomain(invalidDomain); // This should print an error
+
+        srcProtein.summarize();
+        // 
+    }
+}
