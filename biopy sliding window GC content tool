@@ -1,0 +1,140 @@
+import numpy as np
+from Bio.Seq import Seq
+from typing import List, Tuple
+
+def sliding_window_gc_content(sequence: Seq, window_size: int, step: int) -> List[Tuple[int, float]]:
+    """
+    Calculates the GC content across a sequence using a sliding window approach.
+
+    GC content is defined as the percentage of Guanine (G) and Cytosine (C) 
+    bases in a given window. This utility is useful for generating genomic profiles.
+
+    Args:
+        sequence (Seq): The input sequence, typically DNA, as a Biopython Seq object.
+        window_size (int): The size of the sliding window (must be > 0).
+        step (int): The number of bases to step/slide the window after each calculation (must be > 0).
+
+    Returns:
+        List[Tuple[int, float]]: A list of (start_position, gc_content_percentage) 
+                                  tuples for each window.
+
+    Raises:
+        ValueError: If window_size or step are non-positive, or if window_size 
+                    is larger than the sequence length.
+    """
+    
+    # 1. Input Validation (Biopython Contribution Style)
+    if not isinstance(sequence, Seq):
+        raise TypeError("Input 'sequence' must be a Biopython Seq object.")
+    if window_size <= 0:
+        raise ValueError("window_size must be a positive integer.")
+    if step <= 0:
+        raise ValueError("step must be a positive integer.")
+    
+    seq_len = len(sequence)
+    if window_size > seq_len:
+        raise ValueError("window_size cannot be larger than the sequence length.")
+        
+    # Standardize sequence to uppercase string for easy slicing and counting
+    dna = str(sequence).upper()
+
+    # 2. Optimized Window Calculation
+    gc_profile = []
+    
+    # Use an efficient sliding window that iterates until the window endpoint exceeds 
+    # the sequence length.
+    for start_position in range(0, seq_len, step):
+        
+        # Determine the end point of the window
+        end_position = start_position + window_size
+        
+        # Stop if the window goes completely past the end
+        if start_position >= seq_len:
+             break
+        
+        # Adjust end_position for the last, potentially shorter window
+        # We only calculate if the window is non-empty
+        if start_position < seq_len:
+            
+            # Extract the subsequence
+            window = dna[start_position:end_position]
+            
+            # Count G and C bases (optimized approach)
+            g_count = window.count('G')
+            c_count = window.count('C')
+            
+            window_len = len(window)
+            
+            # Calculate GC content percentage
+            if window_len > 0:
+                gc_percentage = ((g_count + c_count) / window_len) * 100.0
+                gc_profile.append((start_position, gc_percentage))
+    
+    return gc_profile
+
+
+# --- Example Usage (Demonstration of Contribution) ---
+def main():
+    """
+    Demonstrates how the GC content profiling function works.
+    """
+    
+    # Define a mock sequence (partially G/C rich, partially A/T rich)
+    mock_dna = "ATTTTAAAACCCCCGGGGATATATATATATGCGCGCGCGCGCATTTTTAAAA"
+    test_seq = Seq(mock_dna)
+    
+    WINDOW = 10
+    STEP = 5
+    
+    print("=========================================================")
+    print("  Biopython Contribution: Sliding Window GC Content Tool  ")
+    print("=========================================================")
+    print(f"Sequence Length: {len(test_seq)}")
+    print(f"Window Size: {WINDOW} | Step Size: {STEP}")
+    
+    try:
+        # Calculate the GC profile
+        profile = sliding_window_gc_content(test_seq, WINDOW, STEP)
+        
+        print("\nGC Content Profile (Position, %GC):")
+        
+        positions = []
+        gc_values = []
+        
+        for pos, gc in profile:
+            print(f"  Start {pos:3d}: {gc:.2f}%")
+            positions.append(pos)
+            gc_values.append(gc)
+            
+        # Optional: Visualization (useful for a real analysis)
+        if positions:
+            plot_gc_profile(positions, gc_values, WINDOW, STEP)
+
+    except (ValueError, TypeError) as e:
+        print(f"Error during execution: {e}")
+
+
+def plot_gc_profile(positions: List[int], gc_values: List[float], window: int, step: int):
+    """Simple plotting function for demonstration (requires matplotlib)."""
+    try:
+        import matplotlib.pyplot as plt
+        
+        plt.figure(figsize=(10, 5))
+        plt.plot(positions, gc_values, marker='o', linestyle='-', color='#047857')
+        plt.title(f'GC Content Profile (Window: {window}, Step: {step})')
+        plt.xlabel('Sequence Start Position')
+        plt.ylabel('GC Content (%)')
+        plt.ylim(0, 100)
+        plt.grid(axis='y', linestyle='--', alpha=0.6)
+        plt.tight_layout()
+        plt.show()
+        print("\nGC Profile plot generated. (Check local execution for full display)")
+        # 
+
+    except ImportError:
+        print("\nMatplotlib not found. Cannot display plot, but data was calculated.")
+
+if __name__ == "__main__":
+    # We must ensure matplotlib is imported locally only for the plot, 
+    # as the core function should not depend on it.
+    main()
