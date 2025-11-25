@@ -1,0 +1,139 @@
+import time
+import random
+import os
+
+# Define mock file paths for simulation
+MOCK_READ_FILE = "sample_R1.fastq.gz"
+MOCK_REF_GENOME = "hg38.fasta"
+
+# --- 1. Quality Control (QC) Simulation ---
+def quality_control(input_file):
+    """
+    Simulates the FastQC process, checking read quality and filtering poor reads.
+    
+    Args:
+        input_file (str): Path to the raw sequencing data (FASTQ).
+        
+    Returns:
+        tuple: (output_qc_report_path, output_trimmed_file_path)
+    """
+    print(f"\n[STEP 1: QUALITY CONTROL] Processing raw reads: {input_file}")
+    time.sleep(1) # Simulate processing time
+
+    # Mock QC results
+    total_reads = 1000000
+    poor_quality_reads = random.randint(20000, 50000)
+    trimmed_reads = total_reads - poor_quality_reads
+    
+    qc_report = f"qc_report_{os.path.basename(input_file)}.html"
+    trimmed_file = f"trimmed_{os.path.basename(input_file)}"
+    
+    print(f"  -> Generating FastQC report: {qc_report}")
+    print(f"  -> Total reads: {total_reads:,}")
+    print(f"  -> Poor quality/adapter reads trimmed: {poor_quality_reads:,}")
+    print(f"  -> Trimmed reads remaining: {trimmed_reads:,}")
+    print(f"  -> Output trimmed file: {trimmed_file}")
+    
+    return qc_report, trimmed_file
+
+# --- 2. Sequence Alignment Simulation ---
+def sequence_alignment(trimmed_file, reference_genome):
+    """
+    Simulates aligning trimmed reads to a reference genome using BWA-MEM.
+    
+    Args:
+        trimmed_file (str): Path to the quality-controlled reads.
+        reference_genome (str): Path to the reference genome FASTA.
+        
+    Returns:
+        str: Path to the aligned BAM file.
+    """
+    print(f"\n[STEP 2: ALIGNMENT] Aligning reads against {reference_genome}")
+    time.sleep(2) # Longer simulation for alignment
+
+    aligned_bam = f"aligned_{trimmed_file.replace('.fastq.gz', '.bam')}"
+    
+    # Mock alignment statistics
+    alignment_rate = random.uniform(95.0, 99.5)
+    
+    print(f"  -> Using BWA-MEM (simulated)")
+    print(f"  -> Reference: {reference_genome}")
+    print(f"  -> Alignment Rate: {alignment_rate:.2f}%")
+    print(f"  -> Output aligned BAM file: {aligned_bam}")
+    
+    # In a real pipeline, this would involve sorting, indexing, and mark duplicates
+    
+    return aligned_bam
+
+# --- 3. Variant Calling Simulation ---
+def variant_calling(aligned_bam_file):
+    """
+    Simulates the variant calling process (e.g., using GATK HaplotypeCaller).
+    
+    Args:
+        aligned_bam_file (str): Path to the aligned BAM file.
+        
+    Returns:
+        str: Path to the final VCF file.
+    """
+    print(f"\n[STEP 3: VARIANT CALLING] Identifying genetic variants in {aligned_bam_file}")
+    time.sleep(1.5) # Simulate processing time
+
+    vcf_file = aligned_bam_file.replace('.bam', '.vcf')
+    
+    # Mock variant calling statistics
+    num_snps = random.randint(300000, 400000)
+    num_indels = random.randint(30000, 50000)
+    
+    print(f"  -> Using GATK HaplotypeCaller (simulated)")
+    print(f"  -> Identified SNPs: {num_snps:,}")
+    print(f"  -> Identified Indels: {num_indels:,}")
+    print(f"  -> Output Variant Call Format (VCF) file: {vcf_file}")
+    
+    return vcf_file
+
+# --- 4. Final Processing and Cleanup ---
+def final_analysis_and_cleanup(vcf_file):
+    """
+    Simulates final filtering/annotation and cleanup steps.
+    
+    Args:
+        vcf_file (str): Path to the final VCF file.
+    """
+    print(f"\n[STEP 4: FINAL ANNOTATION] Annotating variants in {vcf_file}")
+    time.sleep(0.5)
+    
+    annotated_vcf = vcf_file.replace('.vcf', '_annotated.vcf')
+    
+    print(f"  -> Annotated variants using VEP/SnpEff (simulated)")
+    print(f"  -> Final Annotated VCF: {annotated_vcf}")
+    print("\n[PIPELINE COMPLETE] Analysis finished successfully.")
+
+
+# --- Main Workflow Execution ---
+def run_ngs_pipeline(read_file, reference_file):
+    """
+    Executes the simulated NGS pipeline in sequence.
+    """
+    print("=========================================")
+    print("   Simulated NGS Data Analysis Pipeline    ")
+    print("=========================================")
+    
+    try:
+        # Step 1: Quality Control
+        qc_report, trimmed_reads = quality_control(read_file)
+        
+        # Step 2: Alignment (Input: trimmed_reads, Output: aligned_bam)
+        aligned_bam = sequence_alignment(trimmed_reads, reference_file)
+        
+        # Step 3: Variant Calling (Input: aligned_bam, Output: vcf_file)
+        vcf_file = variant_calling(aligned_bam)
+        
+        # Step 4: Final Processing
+        final_analysis_and_cleanup(vcf_file)
+        
+    except Exception as e:
+        print(f"\n[PIPELINE FAILED] An error occurred: {e}")
+
+if __name__ == "__main__":
+    run_ngs_pipeline(MOCK_READ_FILE, MOCK_REF_GENOME)
