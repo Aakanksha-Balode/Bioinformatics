@@ -1,0 +1,130 @@
+import re
+import matplotlib.pyplot as plt
+import random
+
+# --- 1. Biological Data Parser (FASTA Format) ---
+
+def parse_fasta(fasta_content):
+    """
+    Parses content from a FASTA file/string into a dictionary.
+    
+    The FASTA format starts with a header line (>) followed by sequence data.
+    
+    Args:
+        fasta_content (str): The entire content of the FASTA file/string.
+        
+    Returns:
+        dict: A dictionary where keys are sequence headers and values are the sequences.
+    """
+    print("--- 1. Biological Data Parser (FASTA) ---")
+    
+    # Remove whitespace/newlines from the content, except those marking a new header
+    content = fasta_content.strip()
+    
+    # Split the content by the header character '>'
+    # The first element will be empty if the content starts with '>', so we skip it
+    sequences = {}
+    records = content.split('>')
+    
+    for record in records:
+        if not record:
+            continue
+            
+        # The first line is the header, the rest is the sequence
+        lines = record.split('\n', 1)
+        header = lines[0].strip()
+        
+        # Remove all newlines and spaces from the sequence part
+        sequence = "".join(lines[1:]).replace('\n', '').replace(' ', '')
+        sequences[header] = sequence
+        
+    print(f"Parsed {len(sequences)} sequence records.")
+    for header, seq in sequences.items():
+        print(f"Header: {header[:30]}...")
+        print(f"Sequence Length: {len(seq)}")
+        
+    return sequences
+
+
+# --- 2. Data Visualization (Matplotlib - Gene Expression) ---
+
+def visualize_gene_expression(data):
+    """
+    Visualizes simulated gene expression levels for different genes/samples 
+    using a simple bar chart.
+    
+    Args:
+        data (dict): Dictionary where keys are gene names and values are 
+                     their expression levels (e.g., FPKM/RPM).
+    """
+    print("\n--- 2. Data Visualization (Matplotlib) ---")
+    
+    genes = list(data.keys())
+    levels = list(data.values())
+    
+    # Create the plot
+    plt.figure(figsize=(10, 6))
+    bars = plt.bar(genes, levels, color=['#4299e1', '#f6ad55', '#48bb78', '#ed64a6', '#9f7aea'])
+    
+    # Add titles and labels
+    plt.title('Simulated Gene Expression Levels', fontsize=16, fontweight='bold')
+    plt.xlabel('Gene Identifier', fontsize=12)
+    plt.ylabel('Expression Level (e.g., FPKM)', fontsize=12)
+    
+    # Customize the appearance
+    plt.grid(axis='y', linestyle='--', alpha=0.7)
+    plt.xticks(rotation=45, ha='right') # Rotate x-labels for better readability
+    
+    # Add the value label on top of each bar
+    for bar in bars:
+        yval = bar.get_height()
+        plt.text(bar.get_x() + bar.get_width()/2.0, yval + 0.1, round(yval, 2), ha='center', va='bottom')
+        
+    plt.tight_layout() # Adjust layout to prevent labels from overlapping
+    
+    # Note: When running in a non-interactive environment (like this platform), 
+    # plt.show() will not display the image, but it completes the generation.
+    # In a local Python environment, this command opens the plot window.
+    plt.show() 
+    print("Bar chart visualization generated. (Check local execution for full display)")
+
+
+# --- Example Data and Usage ---
+def main():
+    
+    # --- Example FASTA Content ---
+    fasta_data = """
+>Gene_A_ID|Homo_sapiens|chr1
+ATGGACAGATGACCGTAGCTAGCTAGCTGATG
+CGCGATCGTACGTAGCATCGATCGTA
+>Gene_B_ID|Mus_musculus|chr17
+GATTACAATGCCTAGCTAGCTAGCTAGCTAGCT
+AGCTAGCTAGCTAGCTATAG
+>Sequence_C|Unknown_Source
+TCGATCGGATCGGATCGCGCGCGCGTGCGCGCTAGCTAGCTACGTAGCTA
+"""
+    
+    print("=========================================")
+    print("    Data Handling and Visualization Demo   ")
+    print("=========================================")
+    
+    # 1. Parse FASTA Data
+    parsed_sequences = parse_fasta(fasta_data)
+
+    # ----------------------------------------------------
+    
+    # 2. Visualize Gene Expression
+    # Simulate expression levels (e.g., from an RNA-seq experiment)
+    simulated_expression_data = {
+        "Gene_A": random.uniform(5.0, 15.0),
+        "Gene_B": random.uniform(1.0, 5.0),
+        "Gene_C": random.uniform(10.0, 25.0),
+        "Gene_D": random.uniform(20.0, 30.0),
+        "Gene_E": random.uniform(12.0, 18.0),
+    }
+    
+    visualize_gene_expression(simulated_expression_data)
+    # 
+    
+if __name__ == "__main__":
+    main()
