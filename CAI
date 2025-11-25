@@ -1,0 +1,156 @@
+import numpy as np
+import pandas as pd
+from typing import Dict, List, Union
+
+# --- 1. Codon Usage Data (Simplified Example) ---
+# A real contribution would use external codon usage data (e.g., from Codon Usage Database)
+# This dictionary maps a three-letter amino acid code to a dictionary of its codons 
+# and their relative frequencies (0.0 to 1.0) in a highly expressive host (e.g., E. coli).
+CODON_FREQUENCY: Dict[str, Dict[str, float]] = {
+    'A': {'GCT': 0.28, 'GCC': 0.26, 'GCA': 0.24, 'GCG': 0.22},
+    'L': {'TTA': 0.05, 'TTG': 0.12, 'CTT': 0.11, 'CTC': 0.10, 'CTA': 0.04, 'CTG': 0.58},
+    'R': {'CGT': 0.35, 'CGC': 0.33, 'CGA': 0.07, 'CGG': 0.05, 'AGA': 0.07, 'AGG': 0.13},
+    'V': {'GTT': 0.16, 'GTC': 0.19, 'GTA': 0.13, 'GTG': 0.52},
+    'M': {'ATG': 1.0},
+    'W': {'TGG': 1.0},
+    # Simplified list for demonstration - real data would include all 20
+}
+
+# --- 2. Codon Mapping (Codon -> Amino Acid) ---
+# Helper dictionary to quickly map codons back to their amino acids
+CODON_TO_AMINO: Dict[str, str] = {
+    codon: aa for aa, codons in CODON_FREQUENCY.items() for codon in codons
+}
+
+# --- 3. Optimized Scoring Function (NumPy/Pandas style) ---
+
+def calculate_codon_adaptation_index(
+    dna_sequence: Union[str, np.ndarray],
+    codon_frequencies: Dict[str, Dict[str, float]] = CODON_FREQUENCY,
+    codon_to_amino_map: Dict[str, str] = CODON_TO_AMINO
+) -> float:
+    """
+    Calculates the Codon Adaptation Index (CAI) score for a DNA sequence.
+    
+    The CAI is a measure of synonymous codon usage bias. Higher scores 
+    indicate codon usage closer to that of highly expressed genes in the target host.
+    This implementation is optimized for NumPy array input.
+
+    Args:
+        dna_sequence: The input DNA sequence string or a pre-split NumPy array of codons.
+        codon_frequencies: Dictionary of codon usage frequencies for the target organism.
+        codon_to_amino_map: Dictionary mapping codons to amino acids.
+
+    Returns:
+        float: The Codon Adaptation Index (CAI) score (0.0 to 1.0).
+    """
+    
+    # 1. Preprocessing: Convert sequence string to list of codons
+    if isinstance(dna_sequence, str):
+        dna_sequence = dna_sequence.upper().replace(' ', '').replace('\n', '')
+        # Check for non-divisible length
+        if len(dna_sequence) % 3 != 0:
+            raise ValueError("DNA sequence length must be a multiple of 3.")
+            
+        codons = [dna_sequence[i:i+3] for i in range(0, len(dna_sequence), 3)]
+        if not codons:
+            return 0.0
+            
+        codons_array = np.array(codons)
+    else:
+        # Assume input is already a NumPy array of 3-base codons
+        codons_array = dna_sequence
+        
+    # 2. Get the Relative Adaptiveness Score (W) for each codon
+    # W is calculated as the frequency of the codon divided by the frequency 
+    # of the most frequent (optimal) codon for that amino acid.
+    
+    w_scores = []
+    
+    # Create a memoized map of optimal frequencies (W_max) for speed
+    optimal_freqs = {aa: max(freqs.values()) for aa, freqs in codon_frequencies.items()}
+    
+    # Iterate over codons and calculate W score
+    for codon in codons_array:
+        amino_acid = codon_to_amino_map.get(codon)
+        
+        if amino_acid in codon_to_amino_map:
+            codon_freq = codon_frequencies.get(amino_acid, {}).get(codon, 0.0)
+            optimal_freq = optimal_freqs.get(amino_acid, 1.0) # Should not be 0
+            
+            # W = (Codon Frequency) / (Optimal Codon Frequency for that AA)
+            # This score W ranges from 0 to 1.
+            w = codon_freq / optimal_freq if optimal_freq > 0 else 0.0
+            w_scores.append(w)
+        else:
+            # Non-coding codons (e.g., stop codons) or non-standard codons are ignored (W=0)
+            w_scores.append(0.0)
+            
+    # 3. Calculate CAI (Geometric Mean of W scores)
+    
+    # Convert list of W scores to NumPy array for fast calculation
+    w_array = np.array(w_scores)
+    
+    # Filter out zero scores for the geometric mean calculation (log(0) is undefined)
+    # Note: A codon with W=0 means it's never used, which is rare in real data, 
+    # but we must handle it mathematically.
+    non_zero_w = w_array[w_array > 0]
+    
+    if len(non_zero_w) == 0:
+        return 0.0 # Sequence contains only non-coding or highly biased (zero-frequency) codons
+        
+    # Calculate the geometric mean: exp( mean( log(W) ) )
+    log_w = np.log(non_zero_w)
+    mean_log_w = np.mean(log_w)
+    cai_score = np.exp(mean_log_w)
+    
+    return float(cai_score)
+
+# --- Example Usage with Pandas Integration ---
+def main():
+    
+    print("=========================================================")
+    print("  NumPy/Pandas Contribution: Codon Adaptation Index (CAI) ")
+    print("=========================================================")
+    
+    # Example Sequences
+    # Sequence 1: Optimized for high expression (uses mostly high-frequency codons)
+    optimized_seq = "GCTGCCGCTGCTCTGCTGGTTGTCGTAGTGATGTGG" 
+    # Sequence 2: Suboptimal (uses low-frequency codons)
+    suboptimal_seq = "GCAAGCTTAGCTTAAGACGAAGAGGAGAGTTTGGATT"
+    # Sequence 3: Highly random/low frequency mix
+    random_seq = "CGAAGACGAGCAGCGCTTACCTTACCTTTAAGGCTGC"
+    
+    # A. Direct Calculation
+    cai_opt = calculate_codon_adaptation_index(optimized_seq)
+    cai_sub = calculate_codon_adaptation_index(suboptimal_seq)
+    cai_rand = calculate_codon_adaptation_index(random_seq)
+    
+    print("\n--- Direct Calculation (CAI Score 0.0 to 1.0) ---")
+    print(f"Optimized Sequence CAI: {cai_opt:.4f} (Expected High)")
+    print(f"Suboptimal Sequence CAI: {cai_sub:.4f} (Expected Medium/Low)")
+    print(f"Random Sequence CAI: {cai_rand:.4f} (Expected Low)")
+
+    # B. Pandas Integration (Vectorized Application)
+    print("\n--- Pandas Integration Demo ---")
+    
+    data = {
+        'Gene_ID': ['GENE001', 'GENE002', 'GENE003'],
+        'Sequence': [optimized_seq, suboptimal_seq, random_seq]
+    }
+    df = pd.DataFrame(data)
+    
+    # Using Pandas Series.apply() for vectorized calculation across a large dataset
+    # This is the standard way to integrate custom NumPy-optimized functions into Pandas.
+    df['CAI_Score'] = df['Sequence'].apply(calculate_codon_adaptation_index)
+    
+    print("\nDataFrame Results:")
+    print(df.to_string(index=False))
+
+    print("\nContribution Summary:")
+    print("This function is optimized to handle array inputs and calculates the CAI score,")
+    print("providing a crucial metric for synthetic biology and recombinant protein expression.")
+
+
+if __name__ == "__main__":
+    main()
