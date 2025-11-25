@@ -1,0 +1,62 @@
+<tool id="sequence_qc_filter" name="Sequence QC and Length Filter" version="0.1.0">
+    <description>Filters FASTA sequences based on minimum length and generates a summary report.</description>
+
+    <requirements>
+        <!-- Defines the software needed for the script to run, like Python -->
+        <requirement type="package" version="3.8">python</requirement>
+    </requirements>
+
+    <command detect_errors="aggressive">
+        <![CDATA[
+        python tool_script.py 
+        --input $input_fasta
+        --output $output_fasta
+        --report $output_report
+        --min_length $min_length
+        ]]>
+    </command>
+
+    <inputs>
+        <!-- Input FASTA file (the sequence data) -->
+        <param name="input_fasta" type="data" format="fasta" label="Input FASTA Sequence File" help="Sequences to be filtered."/>
+        
+        <!-- Parameter for minimum sequence length -->
+        <param name="min_length" type="integer" value="100" min="1" label="Minimum Sequence Length (bp/AA)" help="Sequences shorter than this length will be filtered out."/>
+    </inputs>
+
+    <outputs>
+        <!-- Output file containing only sequences that passed the filter -->
+        <data name="output_fasta" format="fasta" label="${tool.name} on ${on_string}: Filtered Sequences"/>
+        
+        <!-- Output file containing a text summary of the QC process -->
+        <data name="output_report" format="txt" label="${tool.name} on ${on_string}: QC Report"/>
+    </outputs>
+
+    <tests>
+        <!-- Example test case to ensure the tool runs correctly -->
+        <test>
+            <param name="input_fasta" value="test_data.fasta"/>
+            <param name="min_length" value="20"/>
+            <output name="output_fasta" file="filtered_output.fasta" compare="diff"/>
+            <output name="output_report" file="report_output.txt" compare="diff"/>
+        </test>
+    </tests>
+    
+    <help>
+    <![CDATA[
+    This tool implements a quality control step for sequence data, typically used early 
+    in an NGS pipeline. It reads a FASTA file and filters out any sequence whose length 
+    is below the user-specified minimum threshold.
+
+    **Inputs:**
+    - Input FASTA Sequence File: Your raw or processed sequence data.
+    - Minimum Sequence Length: The required length for a sequence to be kept.
+
+    **Outputs:**
+    - Filtered Sequences: A new FASTA file containing only the sequences that passed the filter.
+    - QC Report: A simple text report summarizing the number of sequences processed, 
+      the number kept, and the number filtered out.
+    ]]>
+    </help>
+
+</tool>
