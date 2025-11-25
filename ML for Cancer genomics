@@ -1,0 +1,131 @@
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score, classification_report
+import matplotlib.pyplot as plt
+
+# --- 1. Data Generation (Simulated Gene Expression) ---
+def generate_simulated_data(n_samples=200):
+    """
+    Creates synthetic gene expression data for two hypothetical cancer types (0 and 1).
+    
+    The expression patterns are designed to show separation, making the classification possible.
+    Gene_A is highly expressed in Cancer Type 1.
+    Gene_B is lowly expressed in Cancer Type 1.
+    """
+    print("--- Generating Simulated Gene Expression Data ---")
+    
+    # Simulate expression for 5 genes (features)
+    # 50% Cancer Type 0 (e.g., Benign/Normal)
+    # 50% Cancer Type 1 (e.g., Malignant)
+    
+    X = np.zeros((n_samples, 5))
+    y = np.zeros(n_samples, dtype=int)
+    
+    # Data for Cancer Type 0 (Index 0 to n_samples/2 - 1)
+    # Genes A and B are medium/low
+    X[:n_samples//2, 0] = np.random.normal(loc=5, scale=1.5, size=n_samples//2) # Gene_A
+    X[:n_samples//2, 1] = np.random.normal(loc=10, scale=2.0, size=n_samples//2) # Gene_B
+    # Other genes are random
+    X[:n_samples//2, 2:] = np.random.normal(loc=7, scale=3, size=(n_samples//2, 3))
+    y[:n_samples//2] = 0
+    
+    # Data for Cancer Type 1 (Index n_samples/2 to end)
+    # Gene_A is highly expressed (Key predictor)
+    X[n_samples//2:, 0] = np.random.normal(loc=15, scale=2.5, size=n_samples//2) 
+    # Gene_B is lowly expressed (Key predictor)
+    X[n_samples//2:, 1] = np.random.normal(loc=3, scale=1.0, size=n_samples//2) 
+    # Other genes are random
+    X[n_samples//2:, 2:] = np.random.normal(loc=6, scale=3, size=(n_samples//2, 3))
+    y[n_samples//2:] = 1
+    
+    # Create DataFrame for better handling
+    feature_names = [f'Gene_{i}' for i in ['A', 'B', 'C', 'D', 'E']]
+    df = pd.DataFrame(X, columns=feature_names)
+    df['Cancer_Type'] = y
+    
+    print(f"Generated {n_samples} samples with 5 gene expression features.")
+    return df, feature_names
+
+
+# --- 2. Cancer Prediction Model (Random Forest) ---
+def train_and_evaluate_model(df, feature_names):
+    """
+    Splits data, trains a RandomForestClassifier, and evaluates its performance.
+    """
+    print("\n--- Training Random Forest Model for Cancer Prediction ---")
+    
+    # Separate features (X) and target (y)
+    X = df[feature_names]
+    y = df['Cancer_Type']
+    
+    # Split data into training and testing sets (80% train, 20% test)
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.2, random_state=42, stratify=y
+    )
+    
+    print(f"Training set size: {len(X_train)} | Testing set size: {len(X_test)}")
+    
+    # Initialize the Random Forest Classifier
+    model = RandomForestClassifier(n_estimators=100, random_state=42)
+    
+    # Train the model
+    model.fit(X_train, y_train)
+    
+    # Make predictions on the test set
+    y_pred = model.predict(X_test)
+    
+    # Evaluate the model
+    accuracy = accuracy_score(y_test, y_pred)
+    report = classification_report(y_test, y_pred, target_names=['Type 0', 'Type 1'])
+    
+    print("\nModel Evaluation:")
+    print(f"Accuracy: {accuracy:.4f}")
+    print("\nClassification Report:")
+    print(report)
+    
+    # Visualize feature importance
+    plot_feature_importance(model, feature_names)
+    
+    return model
+
+# --- 3. Visualization (Feature Importance) ---
+def plot_feature_importance(model, feature_names):
+    """
+    Plots the feature importance scores from the trained Random Forest model.
+    """
+    print("\n--- Visualizing Feature Importance ---")
+    
+    importances = model.feature_importances_
+    
+    # Sort feature importances in descending order
+    sorted_indices = np.argsort(importances)[::-1]
+    sorted_importances = importances[sorted_indices]
+    sorted_feature_names = [feature_names[i] for i in sorted_indices]
+    
+    plt.figure(figsize=(10, 5))
+    plt.bar(range(len(feature_names)), sorted_importances, 
+            tick_label=sorted_feature_names, color='#10b981')
+    
+    plt.xticks(rotation=45, ha='right')
+    plt.title('Gene Importance for Cancer Type Prediction', 
+              fontsize=14, fontweight='bold')
+    plt.xlabel('Gene (Feature)')
+    plt.ylabel('Importance Score (Gini Importance)')
+    plt.tight_layout()
+    plt.show()
+    # 
+
+# --- Main Execution ---
+if __name__ == "__main__":
+    
+    print("=========================================")
+    print("  Machine Learning for Cancer Genomics Demo  ")
+    print("=========================================")
+    
+    # 1. Generate Data
+    data_df, features = generate_simulated_data(n_samples=300)
+    
+    # 2. Train and Evaluate Model
+    trained_model = train_and_evaluate_model(data_df, features)
