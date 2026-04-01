@@ -1,0 +1,31 @@
+# Exercise
+
+* Consider the dna sequence, AGTTAGCTAGGAG
+dna = "AGTTAGCTAGGAG"
+
+* How many nucleotides are present?
+number_of_nucleotides = len(dna)
+print("Number of Nucleotides is: ", number_of_nucleotides)
+
+* Calculate the percentage GC in the sequence?
+gc = dna.count('G') + dna.count('C')
+length_of_dna = len(dna)
+gc_percentage = gc/length_of_dna * 100
+print('Percentage gc is: ', gc_percentage)
+
+gc_rounded = round(gc_percentage, 2)
+print('Percentage gc rounded: ', gc_rounded)
+
+* How many purines are present?
+purines = dna.count('A') + dna.count('G')
+print('Number of purines is: ', purines)
+
+* How many pyrimidines are present?
+pyrimidines = dna.count('C') + dna.count('T')
+print('Number of pyrimidines is: ', pyrimidines)
+
+* Calculate the percentage of purines in the sequence?
+percentage_purines = purines/length_of_dna * 100
+print('Percentage of purines is: ', percentage_purines)
+
+print("percentage purines rounded is: ", round(percentage_purines,2))
